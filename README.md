@@ -1,2 +1,2 @@
 # usefull_code
-Code I use often
+My collection of code and helper functions I use often on different ML projects.
