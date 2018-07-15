@@ -1,4 +1,5 @@
-from urllib.request import urlretrievetrieve
-url = 'INSERT_FILE_URL'
-filename = 'INSERT_FILE_NAME_AND_EXTENSION'
-urlretrieve(url, filename)
+def load_file_from_web(file_url, file_name):
+	from urllib.request import urlretrieve
+	url = file_url
+	filename = file_name
+	urlretrieve(url, filename)
