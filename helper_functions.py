@@ -37,3 +37,19 @@ def how_many_cores():
 	return cores
 
 ####
+from os import walk
+def files_in_path(path_to_check, extension = ''):
+    '''
+    Returns the files in the path (excludes files in lower level directories and those directory names).
+    If want to include only files with a given extension use, for instance, extension = 'csv'
+    '''
+    _ = walk('processed_data/')
+    files = list(_)[0][-1]
+    if extension == '':
+        return files
+    else:
+        sel_files = []
+        for fl in files:
+            if '.'+extension in fl:
+                sel_files.append(fl)
+        return sel_files
