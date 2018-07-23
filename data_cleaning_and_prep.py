@@ -153,10 +153,6 @@ def remove_collinear_features(x, threshold, target_col):
     # Drop one of each pair of correlated columns
     drops = set(drop_cols)
     x = x.drop(columns = drops)
-    x = x.drop(columns = ['Weather Normalized Site EUI (kBtu/ft²)', 
-                          'Water Use (All Water Sources) (kgal)',
-                          'log_Water Use (All Water Sources) (kgal)',
-                          'Largest Property Use Type - Gross Floor Area (ft²)'])
     
     # Add the score back in to the data
     x[target_col] = y
