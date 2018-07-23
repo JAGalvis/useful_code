@@ -88,3 +88,25 @@ def missing_values_table(df):
 
     # Return the dataframe with missing information
     return mis_val_table_ren_columns
+
+def remove_extreme_outliers(df, column, drop_outliers = True):
+    '''
+    Function to remove or change to NAN the extreme outliers on a given column in the dataframe.
+    "Extreme outliers are any data values which lie more than 3.0 times the interquartile range below the first quartile or above the third quartile"
+    https://people.richland.edu/james/lecture/m170/ch03-pos.html
+    '''
+    # Calculate first and third quartile
+    first_quartile = df[column].describe()['25%']
+    third_quartile = df[column].describe()['75%']
+
+    # Interquartile range
+    iqr = third_quartile - first_quartile
+
+    # Remove outliers
+    if drop_outliers == True:
+        df = df[(df[column] > (first_quartile - 3 * iqr)) &
+                (df[column] < (third_quartile + 3 * iqr))]
+    else:
+        df.loc[(df[column] < (first_quartile - 3 * iqr)) |
+               (df[column] > (third_quartile + 3 * iqr)), column] = np.nan
+    return df
