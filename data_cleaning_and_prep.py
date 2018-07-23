@@ -110,3 +110,57 @@ def remove_extreme_outliers(df, column, drop_outliers = True):
         df.loc[(df[column] < (first_quartile - 3 * iqr)) |
                (df[column] > (third_quartile + 3 * iqr)), column] = np.nan
     return df
+
+def remove_collinear_features(x, threshold, target_col):
+    '''
+    Objective:
+        Remove collinear features in a dataframe with a correlation coefficient
+        greater than the threshold. Removing collinear features can help a model
+        to generalize and improves the interpretability of the model.
+    Inputs: 
+        threshold: any features with correlations greater than this value are removed
+    Output: 
+        dataframe that contains only the non-highly-collinear features
+        
+    Adapted from:
+    * https://github.com/WillKoehrsen/machine-learning-project-walkthrough/blob/master/Machine%20Learning%20Project%20Part%201.ipynb
+    * https://stackoverflow.com/questions/29294983/how-to-calculate-correlation-between-all-columns-and-remove-highly-correlated-on/43104383#43104383
+    '''
+    
+    # Dont want to remove correlations between Energy Star Score
+    y = x[target_col]
+    x = x.drop(columns = [target_col])
+    
+    # Calculate the correlation matrix
+    corr_matrix = x.corr()
+    iters = range(len(corr_matrix.columns) - 1)
+    drop_cols = []
+
+    # Iterate through the correlation matrix and compare correlations
+    for i in iters:
+        for j in range(i):
+            item = corr_matrix.iloc[j:(j+1), (i+1):(i+2)]
+            col = item.columns
+            row = item.index
+            val = abs(item.values)
+            
+            # If correlation exceeds the threshold
+            if val >= threshold:
+                # Print the correlated features and the correlation value
+                print(col.values[0], "|", row.values[0], "|", round(val[0][0], 2))
+                drop_cols.append(col.values[0])
+
+    # Drop one of each pair of correlated columns
+    drops = set(drop_cols)
+    x = x.drop(columns = drops)
+    x = x.drop(columns = ['Weather Normalized Site EUI (kBtu/ft²)', 
+                          'Water Use (All Water Sources) (kgal)',
+                          'log_Water Use (All Water Sources) (kgal)',
+                          'Largest Property Use Type - Gross Floor Area (ft²)'])
+    
+    # Add the score back in to the data
+    x[target_col] = y
+               
+    return x
+
+
