@@ -141,7 +141,7 @@ def remove_collinear_features(x, threshold, target_col):
 
 ####
 # from tqdm import tqdm_notebook
-# import cPickle as pickle
+# import pickle
 def duplicate_columns(df, show_progress = False, store_duplicates = False):
     '''
     Finds duplicate columns in a dataset and returns their names.
