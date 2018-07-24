@@ -24,26 +24,6 @@ def clean_str(str_to_clean):
     str_to_clean = str_to_clean.replace('-','_').replace(' ','_').replace('(','').replace(')','').replace(':','').replace(',','').replace('/','')
     return str_to_clean
 
-####
-def duplicate_columns(frame):
-    '''
-    Finds duplicate columns in a dataset and returns their names.
-    WARNING. Very slow on wide datasets
-    '''
-    groups = frame.columns.to_series().groupby(frame.dtypes).groups
-    dups = []
-    for t, v in groups.items():
-        cs = frame[v].columns
-        vs = frame[v]
-        lcs = len(cs)
-        for i in range(lcs):
-            ia = vs.iloc[:,i].values
-            for j in range(i+1, lcs):
-                ja = vs.iloc[:,j].values
-                if array_equivalent(ia, ja):
-                    dups.append(cs[i])
-                    break
-    return dups
 
 ####
 def remove_zero_variance(df, min_var = 0):
@@ -159,4 +139,40 @@ def remove_collinear_features(x, threshold, target_col):
                
     return x
 
-
+####
+# from tqdm import tqdm_notebook
+# import cPickle as pickle
+def duplicate_columns(df, show_progress = False, store_duplicates = False):
+    '''
+    Finds duplicate columns in a dataset and returns their names.
+    REQUIRED:
+        * import pandas as pd
+        * from tqdm import tqdm_notebook
+        * import cPickle as pickle
+    WARNING: 
+        * Can be slow on wide datasets.
+        * As it's so slow, it pays to store the duplicate columns.
+        * Show progress doesn't work on Google's Colab.
+    '''
+    dup_cols = {}
+    train_enc =  pd.DataFrame(index = df.index)
+    
+    for col in df.columns:
+        train_enc[col] = df[col].factorize()[0]
+        
+    if show_progress:
+        columns = tqdm_notebook(df.columns)
+    else:
+        columns = df.columns
+        
+    for i, c1 in enumerate(columns):
+        for c2 in train_enc.columns[i + 1:]:
+            if c2 not in dup_cols and np.all(train_enc[c1] == train_enc[c2]):
+                dup_cols[c2] = c1
+    
+    if store_duplicates:
+        try:
+            pickle.dump(dup_cols, open('dup_cols.p', 'w'), protocol=pickle.HIGHEST_PROTOCOL)
+        except:
+            print("Columns couldn't be pickled.")
+    return dup_cols
