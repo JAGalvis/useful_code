@@ -40,55 +40,65 @@ def remove_zero_variance(df, min_var = 0):
 # Function to calculate missing values by column
 def missing_values_table(df):
     '''
-    Function that calculates the number of missing values and the percentage of the total values that are missing for each column.
-    Credits: https://stackoverflow.com/questions/26266362/how-to-count-the-nan-values-in-a-column-in-pandas-dataframe/39734251#39734251
+        Function that calculates the number of missing values and the percentage of the total values that are missing for each column.
     '''
     # Total missing values
-    mis_val = df.isnull().sum()
+    missing_values = df.isnull().sum()
     
     # Percentage of missing values
-    mis_val_percent = 100 * df.isnull().sum() / len(df)
+    missing_values_percent = 100 * df.isnull().sum() / len(df)
 
-    # Make a table with the results
-    mis_val_table = pd.concat([mis_val, mis_val_percent], axis=1)
+    # Make a dataframe with the results
+    mis_val_table = pd.DataFrame({'missing_values':missing_values, 
+                                  'percent_of_total' :missing_values_percent}).sort_values(by = 'missing_values', 
+                                                                                           ascending = False)
+    mis_val_table = mis_val_table.loc[mis_val_table.missing_values > 0]
 
-    # Rename the columns
-    mis_val_table_ren_columns = mis_val_table.rename(
-    columns = {0 : 'Missing Values', 1 : '% of Total Values'})
+    # Print results
+    print ("The selected dataframe has " + str(df.shape[1]) + " columns.\n" +
+           "The following " + str(mis_val_table.shape[0]) + " columns have missing values.")
 
-    # Sort the table by percentage of missing descending
-    mis_val_table_ren_columns = mis_val_table_ren_columns[
-        mis_val_table_ren_columns.iloc[:,1] != 0].sort_values(
-    '% of Total Values', ascending=False).round(1)
+    return mis_val_table
 
-    # Print some summary information
-    print ("Your selected dataframe has " + str(df.shape[1]) + " columns.\n"      
-        "There are " + str(mis_val_table_ren_columns.shape[0]) +
-          " columns that have missing values.")
-
-    # Return the dataframe with missing information
-    return mis_val_table_ren_columns
-
-def remove_extreme_outliers(df, column, drop_outliers = True):
+def data_cardinality(df, sort = True, only_object = False):
     '''
-    Function to remove or change to NAN the extreme outliers on a given column in the dataframe.
-    "Extreme outliers are any data values which lie more than 3.0 times the interquartile range below the first quartile or above the third quartile"
-    https://people.richland.edu/james/lecture/m170/ch03-pos.html
+        Function that receives a DF and returns a new DF with the cardinality of each column.
     '''
-    # Calculate first and third quartile
-    first_quartile = df[column].describe()['25%']
-    third_quartile = df[column].describe()['75%']
+    if only_object:
+        df = df.select_dtypes(include=['O'])
+        
+    cardinality_df = pd.DataFrame(df.apply(pd.Series.nunique)).reset_index()    
+    cardinality_df.columns = ['feature','cardinality']
+    if sort:
+        cardinality_df = cardinality_df.sort_values(by = 'cardinality').reset_index(drop=True)
+    
+    return cardinality_df
 
-    # Interquartile range
-    iqr = third_quartile - first_quartile
+def remove_extreme_outliers(df, columns, drop_outliers = True):
+    '''
+        Function to remove or change to NAN the extreme outliers on a given column in the dataframe.
+        "Extreme outliers are any data values which lie more than 3.0 times the interquartile range below the first quartile 
+        or above the third quartile"
+        https://people.richland.edu/james/lecture/m170/ch03-pos.html
+    '''
+    df = df.copy()
+    if type(columns) == str:
+        columns = [columns]
+    for column in columns:
+        # Calculate first and third quartile
+        first_quartile = df[column].describe()['25%']
+        third_quartile = df[column].describe()['75%']
 
-    # Remove outliers
-    if drop_outliers == True:
-        df = df[(df[column] > (first_quartile - 3 * iqr)) &
-                (df[column] < (third_quartile + 3 * iqr))]
-    else:
-        df.loc[(df[column] < (first_quartile - 3 * iqr)) |
-               (df[column] > (third_quartile + 3 * iqr)), column] = np.nan
+        # Interquartile range
+        iqr = third_quartile - first_quartile
+
+        # Remove outliers
+        if drop_outliers == True:
+            df = df[(df[column] > (first_quartile - 3 * iqr)) &
+                    (df[column] < (third_quartile + 3 * iqr))]
+        else:
+            df.loc[(df[column] < (first_quartile - 3 * iqr)) |
+                   (df[column] > (third_quartile + 3 * iqr)), column] = np.nan
     return df
 
 def remove_collinear_features(x, threshold, target_col):
