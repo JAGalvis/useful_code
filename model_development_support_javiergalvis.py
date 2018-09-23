@@ -10,7 +10,7 @@ def display_importances(feature_importance_df):
     plt.tight_layout()
     
 
-def lgbModel(df, id_col, target_col, num_folds = 0, file_name='subm_gbm.csv', debug= False):
+def lgbModel_Regression(df, id_col, target_col, num_folds = 0, file_name='subm_gbm.csv', debug= False):
     '''
         
     '''
@@ -90,7 +90,7 @@ def lgbModel(df, id_col, target_col, num_folds = 0, file_name='subm_gbm.csv', de
     display_importances(feature_importance_df)
     return model, subm, feature_importance_df
 
-def XGBmodel(df, id_col, target_col, num_folds = 0, file_name = 'sub_xgb.csv', debug = False):
+def XGBmodel_Regression(df, id_col, target_col, num_folds = 0, file_name = 'sub_xgb.csv', debug = False):
     '''
         
     '''
@@ -175,3 +175,92 @@ def XGBmodel(df, id_col, target_col, num_folds = 0, file_name = 'sub_xgb.csv', d
     display_importances(feature_importance_df)
     
     return model, subm, feature_importance_df
+
+
+# Permutation Importance
+def show_permutation_importance(model, val_X, val_y):
+    '''
+        Takes the model and dataframes for validation set (X and y)
+        then calculates and shows the permutation importance.
+        
+        For more on permutation importance, check https://www.kaggle.com/dansbecker/permutation-importance
+    '''
+    import eli5
+    from eli5.sklearn import PermutationImportance
+
+    perm = PermutationImportance(model, random_state=1).fit(val_X, val_y)
+    eli5.show_weights(perm, feature_names = val_X.columns.tolist())
+    
+def show_partial_dependence(model, val_X, features):
+    '''
+        Takes the model and dataframe for validation set (X)
+        then plots the partial dependence plot
+        For more on this, check https://www.kaggle.com/dansbecker/partial-plots?utm_medium=email&utm_source=mailchimp&utm_campaign=ml4insights 
+    '''
+    from matplotlib import pyplot as plt
+    from pdpbox import pdp, get_dataset, info_plots # Do I need get_dataset and info_plots???
+    
+    feature_names = [i for i in val_X.columns if val_X[i].dtype in [np.int64]]
+    
+    if (not type(features) == list):
+        # Create the data that we will plot
+        pdp_feature = pdp.pdp_isolate(model=model, dataset=val_X, model_features=feature_names, feature=features)
+
+        # plot it
+        pdp.pdp_plot(pdp_feature, feature)
+        plt.show()
+    
+    elif (type(features) == list) & (len(features) == 2):
+        # Similar to previous PDP plot except we use pdp_interact instead of pdp_isolate and pdp_interact_plot instead of pdp_isolate_plot
+        inter1  =  pdp.pdp_interact(model=model, dataset=val_X, model_features=feature_names, features=features)
+
+        pdp.pdp_interact_plot(pdp_interact_out=inter1, feature_names=features_to_plot, plot_type='contour')
+        plt.show()
+    else:
+        print('Error, check input and also think of a better error message....  don\'t be lazy')
+        
+def show_shap_values(model, input_vector):
+    '''
+    Takes the model and the record vector (X)
+    then calculates and shows the shap value for record.
+    
+    For more on SHAP values, check https://www.kaggle.com/dansbecker/shap-values?utm_medium=email&utm_source=mailchimp&utm_campaign=ml4insights
+    '''
+    
+    # Create object that can calculate shap values
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(input_vector)
+    shap.initjs()
+    return shap.force_plot(explainer.expected_value[1], shap_values[1], input_vector)    
+    
+    
+def show_summary_plots(model, val_X):
+    '''
+        https://www.kaggle.com/dansbecker/advanced-uses-of-shap-values?utm_medium=email&utm_source=mailchimp&utm_campaign=ml4insights 
+    '''
+    import shap  # package used to calculate Shap values
+
+    # Create object that can calculate shap values
+    explainer = shap.TreeExplainer(model)
+
+    # Calculate shap_values for all of val_X rather than a single row, to have more data for plot.
+    shap_values = explainer.shap_values(val_X)
+
+    # Make plot. we call shap_values[1]. For classification problems, there is a separate array of SHAP values for each possible outcome. In this case, we index in to get the SHAP values for the prediction of "True".
+    shap.summary_plot(shap_values[1], val_X)
+
+def show_dependence_contribution_plot(model, val_X, feature_of_interest, interaction_index = None):
+    '''
+        https://www.kaggle.com/dansbecker/advanced-uses-of-shap-values?utm_medium=email&utm_source=mailchimp&utm_campaign=ml4insights 
+    '''
+    import shap  # package used to calculate Shap values
+
+    # Create object that can calculate shap values
+    explainer = shap.TreeExplainer(model)
+
+    # calculate shap values. This is what we will plot.
+    shap_values = explainer.shap_values(val_X)
+
+    # make plot.
+    shap.dependence_plot(feature_of_interest, shap_values[1], X, interaction_index=interaction_index)
+
