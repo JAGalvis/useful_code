@@ -1,4 +1,4 @@
-def plot_categorical_bars(df, column,hue=None, colors = None, normalized = True, figsize=(10,4), display_val = True):
+def plot_categorical_bars(df, column, hue=None, colors = None, normalized = True, figsize=(10,4), display_val = True):
     '''
         Creates a column plot of categorical data using seaborn
     '''
