@@ -1,3 +1,24 @@
+def load_df_json_cols(csv_path, json_cols=[], data_type = {}, nrows=None):
+    '''
+        Function to load a DF with data in json format.
+        Original idea in https://www.kaggle.com/scirpus/to-overcome-the-terrible-data 
+    '''
+    from pandas.io.json import json_normalize
+    import json
+    import os
+    
+    df = pd.read_csv(csv_path, 
+                     converters={column: json.loads for column in json_cols}, 
+                     dtype=data_type, # Important!!
+                     nrows=nrows)
+    
+    for column in json_cols:
+        column_as_df = json_normalize(df[column])
+        column_as_df.columns = [f"{column}.{subcolumn}" for subcolumn in column_as_df.columns]
+        df = df.drop(column, axis=1).merge(column_as_df, right_index=True, left_index=True)
+    print(f"Loaded {os.path.basename(csv_path)}. Shape: {df.shape}")
+    return df
+
 ####
 def factorize_binary_categories(df):
     '''
@@ -59,6 +80,25 @@ def missing_values_table(df):
            "The following " + str(mis_val_table.shape[0]) + " columns have missing values.")
 
     return mis_val_table
+
+def na_impute_means(df, target_col):
+    '''
+        Receives the processed dataframe and imputes missing numeric values using mean
+    '''
+#     from sklearn.preprocessing import Imputer
+    from sklearn.impute import SimpleImputer
+
+    
+    impute_numeric = SimpleImputer(missing_values=np.NaN, strategy='mean', verbose=0, copy=True)
+    
+    y = df[[target_col]].copy()
+    df = df.drop(columns = target_col).copy()
+    
+    impute_numeric.fit_transform(df)
+    df = pd.DataFrame(impute_numeric.transform(df), columns = df.columns)
+    df = pd.concat([df, y], axis = 1)
+
+    return df
 
 def data_cardinality(df, sort = True, only_object = False):
     '''
@@ -186,3 +226,62 @@ def duplicate_columns(df, show_progress = False, store_duplicates = False):
         except:
             print("Columns couldn't be pickled.")
     return dup_cols
+
+
+def mean_encoding_kfold(df, folds, col_to_encode, target_col):
+    '''
+        Very prone to target leakage. Do proper validation.
+    '''
+    df = df.copy()
+    from sklearn.model_selection import KFold
+    folds = KFold(n_splits=folds, shuffle=False, random_state=1)
+    
+    for tr_ind, val_ind in folds.split(df):
+        X_tr, X_val = df.iloc[tr_ind], df.iloc[val_ind]
+        df.loc[df.index[val_ind], col_to_encode+'_mean_enc'] = X_val[col_to_encode].map(X_tr.groupby(col_to_encode)[target_col].mean())
+    
+    df[col_to_encode+'_mean_enc'].fillna(df[target_col].mean(), inplace=True)
+    
+    return df
+
+def mean_encoding_loo(df, col_to_encode, target_col):
+    '''
+        
+    '''
+    df = df.copy()
+    leave_one_out_sum = df[col_to_encode].map(df.groupby(col_to_encode)[target_col].sum())
+    leave_one_out_count = df[col_to_encode].map(df.groupby(col_to_encode)[target_col].count())
+    
+    df[col_to_encode+'_mean_enc_loo'] = ((leave_one_out_sum - df[target_col]))/(leave_one_out_count-1)
+    df[col_to_encode+'_mean_enc_loo'].fillna(df[target_col].mean(), inplace=True)
+
+    return df
+
+def mean_encoding_smooth(df, col_to_encode, target_col, alpha):
+    '''
+        
+    '''
+    df = df.copy()
+    globalmean = df[target_col].mean()
+    nrows = df.groupby(col_to_encode).size()
+    means = df.groupby(col_to_encode)[target_col].agg('mean')
+    
+    score = (np.multiply(means,nrows)  + globalmean*alpha) / (nrows+alpha)
+    
+    df[col_to_encode+'_smooth'] = df[col_to_encode].map(score)
+    df[col_to_encode+'_smooth'].fillna(globalmean, inplace=True)
+
+    return df
+
+def mean_encoding_expanding(df, col_to_encode, target_col):
+    '''
+        
+    '''
+    df = df.copy()
+    cumsum = df.groupby(col_to_encode)[target_col].cumsum() - df[target_col]
+    cumcnt = df.groupby(col_to_encode).cumcount()
+
+    df[col_to_encode+'_mean_expanded'] = cumsum/cumcnt
+    df[col_to_encode+'_mean_expanded'].fillna(df[target_col].mean(), inplace=True)
+
+    return df

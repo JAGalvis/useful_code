@@ -9,6 +9,48 @@ def display_importances(feature_importance_df):
     plt.title('Features (avg over folds)')
     plt.tight_layout()
     
+    
+def plot_confusion_matrix(y_true, y_pred, classes,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=plt.cm.Blues):
+    """
+        See full source and example: 
+        http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
+
+        This function prints and plots the confusion matrix.
+        Normalization can be applied by setting `normalize=True`.
+    """
+    from sklearn.metrics import confusion_matrix
+    import matplotlib.pyplot as plt
+    import itertools
+    
+    cm = confusion_matrix(y_true=y_true, y_pred=y_pred, labels=classes)
+    
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, 
+                 format(round(cm[i, j],2) if normalize else cm[i, j]),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    
 
 def lgbModel_Regression(df, id_col, target_col, num_folds = 0, file_name='subm_gbm.csv', debug= False):
     '''
