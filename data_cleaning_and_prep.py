@@ -26,11 +26,14 @@ def clean_str(str_to_clean):
 
 
 ####
-def remove_zero_variance(df, min_var = 0, print_drop = False, return_df = True):
+def remove_zero_variance(df, min_var = 0, print_drop = False, fill_na=True, return_df = True):
     '''
         Function that receives a DF, finds all columns with 0 variance or the minimum variance threshold defined by the user 
         and returns either a copy of the cleaned DataFrame or the columns to drop
     '''
+    df = df.copy()
+    if fill_na:
+        df.fillna(value=-1234567, inplace=True)
     zero_var = df.std()
     zero_var_cols = zero_var[zero_var.values <= min_var].index.values
     if print_drop:
@@ -40,7 +43,6 @@ def remove_zero_variance(df, min_var = 0, print_drop = False, return_df = True):
         return df.drop(columns = zero_var_cols)
     else:
         return zero_var_cols
-
 ####
 # Function to calculate missing values by column
 def missing_values_table(df):
