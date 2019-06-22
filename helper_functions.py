@@ -80,7 +80,7 @@ def files_in_path(path_to_check, extension = ''):
     If want to include only files with a given extension use, for instance, extension = 'csv'
     '''
     from os import walk    
-    _ = walk('processed_data/')
+    _ = walk(path_to_check)
     files = list(_)[0][-1]
     if extension == '':
         return files
@@ -90,3 +90,15 @@ def files_in_path(path_to_check, extension = ''):
             if '.'+extension in fl:
                 sel_files.append(fl)
         return sel_files
+
+###
+def load_and_concatenate_df(path, ext='csv', sep=',', encoding = None):
+    '''
+    concatenatesfiles into one DF
+    '''
+    df_list = []
+    for file in files_in_path(path_to_check=path, extension=ext):
+        df_file = pd.read_csv(path+file, sep=sep, encoding=encoding)
+        df_list.append(df_file)
+    df = pd.concat(df_list, axis=0)
+    return df
