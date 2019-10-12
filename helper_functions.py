@@ -64,7 +64,7 @@ def check_cloud():
     Returns True if Cloud, False if local
     '''
     import os
-    is_cloud = 'DATALAB_ENV' in list(os.environ)
+    is_cloud = 'DATALAB_ENV' in list(os.environ) or 'DATALAB_SETTINGS_OVERRIDES' in list(os.environ)
     return is_cloud
 
 ####
