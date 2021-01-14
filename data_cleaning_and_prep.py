@@ -121,7 +121,42 @@ def data_cardinality(df, sort = True, only_object = False):
     
     return cardinality_df
 
-def remove_extreme_outliers(df, columns, drop_outliers = True):
+def remove_extreme_outliers(df, columns, drop_outliers=True):
+    '''
+        Revised version (ongoing)
+        Function to remove or change to NAN the extreme outliers on a given column in the dataframe.
+        "Extreme outliers are any data values which lie more than 3.0 times the interquartile range below the first quartile 
+        or above the third quartile"
+        https://people.richland.edu/james/lecture/m170/ch03-pos.html
+    '''
+    df = df.copy()
+    if type(columns) == str:
+        columns = [columns]
+    for column in columns:
+        df[column + '__outlier__'] = True
+
+        # Calculate first and third quartile
+        first_quartile = df[column].describe()['25%']
+        third_quartile = df[column].describe()['75%']
+
+        # Interquartile range
+        iqr = third_quartile - first_quartile
+
+        # Tag outliers
+        df.loc[(df[column] >= (first_quartile - 3 * iqr))
+               & (df[column] <= (third_quartile + 3 * iqr)),
+               [column + '__outlier__']] = False
+
+    # Drop outliers:
+    for column in columns:
+        if drop_outliers == True:
+            df = df.loc[df[column + '__outlier__'] == False]            
+        else:
+            df.loc[df[column + '__outlier__'] == True, [column]] = np.nan
+    
+    return df[[col for col in df.columns if '__outlier__' not in col]]
+
+def remove_extreme_outliers_previous(df, columns, drop_outliers = True):
     '''
         Function to remove or change to NAN the extreme outliers on a given column in the dataframe.
         "Extreme outliers are any data values which lie more than 3.0 times the interquartile range below the first quartile 
@@ -140,7 +175,7 @@ def remove_extreme_outliers(df, columns, drop_outliers = True):
         iqr = third_quartile - first_quartile
 
         # Remove outliers
-        if drop_outliers == True:
+        if drop_outliers == True: # Problem is that, if we drop outliers, then, for next columns, the distribution will change. See new version
             df = df[(df[column] > (first_quartile - 3 * iqr)) &
                     (df[column] < (third_quartile + 3 * iqr))]
         else:
